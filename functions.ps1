@@ -247,3 +247,30 @@ function CheckSiteExistsBeforeAddingApplication($websiteName)
     Break
   }
 }
+
+# Download a project from git if it's not already found
+function DownloadProjectIfMissing($parentFolder, $projectName) {
+
+  $projectPath = Join-Path -Path $parentFolder -ChildPath $projectName
+  if (Test-Path $projectPath) {
+    Write-Host "Checking $projectName is up-to-date"
+    Push-Location $projectPath
+    git pull origin master
+    Pop-Location
+    Write-Host
+  } else {
+    if ($env:GIT_ORIGIN_URL) {
+      $repoUrl = $env:GIT_ORIGIN_URL -f $projectName
+      git clone $repoUrl $projectPath
+    } 
+    else 
+    {
+      Write-Warning '$projectName project not found. Please set a GIT_ORIGIN_URL environment variable on your system so that it can be downloaded.
+    
+  Example: C:\>set GIT_ORIGIN_URL=https://example-git-server.com/{0}"
+    
+  {0} will be replaced with the name of the repository to download.'
+      Return
+    }
+  }
+}
