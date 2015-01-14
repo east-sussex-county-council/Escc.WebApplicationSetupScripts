@@ -44,12 +44,16 @@ function EnableDotNet40InIIS() {
 }
 
 # Create an application pool if it doesn't already exist
-function CreateApplicationPool($applicationPoolName) {
+function CreateApplicationPool($applicationPoolName, $classicMode) {
   if (@(Get-ChildItem IIS:\AppPools | Where-Object {$_.Name -eq $applicationPoolName}).Length -eq 0)
   {
       Write-Host Creating application pool $applicationPoolName
       New-WebAppPool -Name $applicationPoolName
       Set-ItemProperty "IIS:\AppPools\$applicationPoolName" managedRuntimeVersion v4.0
+      
+      if ($classicMode) {
+         Set-ItemProperty "IIS:\AppPools\$applicationPoolName" -name managedPipelineMode -value 1
+      }
   } 
   else 
   {
@@ -124,7 +128,7 @@ function CreateWebsite($websiteName, $wwwroot, $applicationPoolName) {
           New-Website -Name $websiteName 
       }
       
-      Set-ItemProperty "IIS:\Sites\$websiteName" -Name PhysicalPath -Value $wwwroot
+      Set-ItemProperty "IIS:\Sites\$websiteName" -Name PhysicalPath -Value "$wwwroot"
       
       if (!$applicationPoolName) {
         $applicationPoolName = $websiteName
@@ -186,16 +190,34 @@ function RemoveHTTPBindings($websiteName) {
   }
 }
 
-function CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDirectoryPath, $allowScripts) {
+# Creates a virtual directory. If the optional $applicationPoolName is specified, it's setup as an application using that app pool.
+function CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDirectoryPath, $allowScripts, $applicationPoolName) {
   if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
   {
     if (Test-Path "IIS:\Sites\$websiteName\$virtualDirectoryUrl") 
     {
-      Write-Host "Virtual directory $virtualDirectoryUrl already exists"
+      if ($applicationPoolName)
+      {
+        Write-Host "Application $virtualDirectoryUrl already exists"
+      }
+      else
+      {
+        Write-Host "Virtual directory $virtualDirectoryUrl already exists"
+      }
     } 
     else 
     {
-      Write-Host "Creating virtual directory $virtualDirectoryUrl"
+     if ($applicationPoolName)
+      {
+        Write-Host "Creating application $virtualDirectoryUrl"
+        New-Item "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -PhysicalPath $virtualDirectoryPath -Type Application
+        Set-ItemProperty "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -Name applicationPool -Value $applicationPoolName
+      }
+      else
+      {
+        Write-Host "Creating virtual directory $virtualDirectoryUrl"
+        New-WebVirtualDirectory -Site $websiteName -Name $virtualDirectoryUrl -PhysicalPath $virtualDirectoryPath
+      }
       
       if ($allowScripts) 
       {
@@ -205,8 +227,6 @@ function CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDire
       {
         $accessPolicy = "Read"
       }
-      
-      New-WebVirtualDirectory -Site $projectName -Name $virtualDirectoryUrl -PhysicalPath $virtualDirectoryPath
       Set-WebConfigurationProperty -PSPath "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -Filter '/system.webserver/handlers' -Name accessPolicy -Value $accessPolicy
     }
   }
@@ -262,6 +282,7 @@ function DownloadProjectIfMissing($parentFolder, $projectName) {
     if ($env:GIT_ORIGIN_URL) {
       $repoUrl = $env:GIT_ORIGIN_URL -f $projectName
       git clone $repoUrl $projectPath
+      Write-Host
     } 
     else 
     {
