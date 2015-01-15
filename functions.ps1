@@ -111,7 +111,7 @@ function CreateSSLCertificate($certificateName) {
 
 # Create a web site if it doesn't already exist. 
 # 3rd parameter optional. Assumes the website uses an application pool with the same name.
-function CreateWebsite($websiteName, $wwwroot, $applicationPoolName) {
+function CreateWebsite($websiteName, $wwwrootPath, $applicationPoolName) {
 
   if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 0)
   {
@@ -128,7 +128,7 @@ function CreateWebsite($websiteName, $wwwroot, $applicationPoolName) {
           New-Website -Name $websiteName 
       }
       
-      Set-ItemProperty "IIS:\Sites\$websiteName" -Name PhysicalPath -Value "$wwwroot"
+      Set-ItemProperty "IIS:\Sites\$websiteName" -Name PhysicalPath -Value "$wwwrootPath"
       
       if (!$applicationPoolName) {
         $applicationPoolName = $websiteName
@@ -143,7 +143,7 @@ function CreateWebsite($websiteName, $wwwroot, $applicationPoolName) {
 
 
 # Bind site to a custom port using the SSL certificate created earlier
-function CreateHTTPSBinding($websiteName, $port) {
+function CreateHTTPSBinding($websiteName, $certificateName, $port) {
 
   if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
   {
@@ -157,8 +157,12 @@ function CreateHTTPSBinding($websiteName, $port) {
           Write-Host Binding website $websiteName to port $port using HTTPS
 
           # Binding code is from comment by Dynamotion on https://social.technet.microsoft.com/Forums/lync/en-US/4f083f00-1f4c-466e-acf8-7ca8bb5baddf/unable-to-enable-https-binding-for-website-using-powershell?forum=winserverpowershell
+          if (!$certificateName) {
+            $certificateName = $websiteName
+          }
+          
           New-WebBinding -Name $websiteName -IP "*" -Port $port -Protocol https
-          $cert=Get-ChildItem -Path Cert:\LocalMachine\My | where-Object {$_.subject -like "*$websiteName*"} | Select-Object -ExpandProperty Thumbprint
+          $cert=Get-ChildItem -Path Cert:\LocalMachine\My | where-Object {$_.subject -like "*$certificateName*"} | Select-Object -ExpandProperty Thumbprint
           get-item -Path "cert:\localmachine\my\$cert" | new-item -path IIS:\SslBindings\0.0.0.0!$port
       }
       else
@@ -247,12 +251,13 @@ function CopyConfig($from, $to) {
 }
 
 # Run nuget restore on an individual project
-function NuGetRestoreForProject($pathToProjectFolder) {
+function NuGetRestoreForProject($parentFolderPath, $projectName) {
 	if (Get-Command "nuget.exe" -ErrorAction SilentlyContinue) 
 	{
-		$pathToProjectFolder = $pathToProjectFolder.TrimEnd("/", "\")
-		Write-Host "Restoring NuGet packages for $pathToProjectFolder"
-		& nuget restore "$pathToProjectFolder\packages.config" -PackagesDirectory "$pathToProjectFolder\packages"
+		$parentFolderPath = $parentFolderPath.TrimEnd("/", "\")
+    $projectFolderPath = "$parentFolderPath\$projectName"
+		Write-Host "Restoring NuGet packages for $projectFolderPath"
+		& nuget restore "$projectFolderPath\packages.config" -PackagesDirectory "$projectFolderPath\packages"
 	} else {
 		Write-Warning "Unable to restore NuGet packages because nuget.exe was not found in your path. If you get build errors, add nuget.exe to your path and run this script again."
 	}
@@ -269,9 +274,9 @@ function CheckSiteExistsBeforeAddingApplication($websiteName)
 }
 
 # Download a project from git if it's not already found
-function DownloadProjectIfMissing($parentFolder, $projectName) {
+function DownloadProjectIfMissing($parentFolderPath, $projectName) {
 
-  $projectPath = Join-Path -Path $parentFolder -ChildPath $projectName
+  $projectPath = Join-Path -Path $parentFolderPath -ChildPath $projectName
   if (Test-Path $projectPath) {
     Write-Host "Checking $projectName is up-to-date"
     Push-Location $projectPath
