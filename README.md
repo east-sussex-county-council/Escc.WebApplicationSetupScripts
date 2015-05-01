@@ -20,13 +20,17 @@ Creates a new website in IIS using the given details. The `$wwwrootPath` folder 
 
 ### CreateSSLCertificate($certificateName)
 
-Creates a self-signed SSL certificate with the name you specify. This certificate is suitable for testing only as your browser will usually display a warning before letting you access a website which uses it.  
+Creates a self-signed SSL certificate with the name you specify. This certificate is suitable for testing only as your browser will usually display a warning before letting you access a website which uses it. 
+
+If you want to use `localhost` as your domain, you probably don't need to create a certificate as you will already have the IIS Express Development Certificate installed. 
+
+Whichever certificate you use, you can [trust that certificate](http://blogs.adobe.com/livecycle/2012/04/rights-management-how-to-get-windows-7-to-trust-a-self-signed-server-certificate.html) to stop browsers displaying a warning before letting you access a website that uses it.
 
 ### CreateHTTPSBinding($websiteName, $certificateName, $port)
 
 When you create a new website, by default it has an HTTP binding to port 80. Use this command to add an HTTPS binding. 
 
-* `$certificateName` is optional. If you leave it blank it will look for a certificate with the same name as the website. 
+* `$certificateName` is optional. If you leave it blank it will look for the IIS Express Development Certificate bound to `localhost`. 
 * `$port` is optional. The script will prompt the user for a port if it is not specified.
 
 ### RemoveHTTPBindings($websiteName)

@@ -158,7 +158,7 @@ function CreateHTTPSBinding($websiteName, $certificateName, $port) {
 
           # Binding code is from comment by Dynamotion on https://social.technet.microsoft.com/Forums/lync/en-US/4f083f00-1f4c-466e-acf8-7ca8bb5baddf/unable-to-enable-https-binding-for-website-using-powershell?forum=winserverpowershell
           if (!$certificateName) {
-            $certificateName = $websiteName
+            $certificateName = "localhost"
           }
           
           New-WebBinding -Name $websiteName -IP "*" -Port $port -Protocol https

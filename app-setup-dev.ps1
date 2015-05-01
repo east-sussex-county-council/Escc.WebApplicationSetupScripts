@@ -46,7 +46,6 @@ Example: C:\>set GIT_ORIGIN_URL=https://example-git-server.com/{0}"
 #
 # EnableDotNet40InIIS
 # CreateApplicationPool $projectName 
-# CreateSSLCertificate $projectName
 # CreateWebsite $projectName $pathOfThisScript
 # CreateHTTPSBinding $projectName
 # RemoveHTTPBindings $projectName
