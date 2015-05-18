@@ -16,7 +16,7 @@ Creates an ASP.NET 4.0 application pool with the name you specify. By default it
 
 ### CreateWebsite($websiteName, $wwwrootPath, $applicationPoolName)
 
-Creates a new website in IIS using the given details. The `$wwwrootPath` folder will often be the same folder or a child of the folder where your `app-setup-dev.ps1` script runs from. The path to that folder is availalble in a variable called `$pathOfThisScript`.
+Creates a new website in IIS using the given details. The `$wwwrootPath` folder will often be the same folder or a child of the folder where your `app-setup-dev.ps1` script runs from. The path to that folder is availalble in a variable called `$pathOfThisScript`. The website does not have any bindings by default.
 
 ### CreateSSLCertificate($certificateName)
 
@@ -26,16 +26,26 @@ If you want to use `localhost` as your domain, you probably don't need to create
 
 Whichever certificate you use, you can [trust that certificate](http://blogs.adobe.com/livecycle/2012/04/rights-management-how-to-get-windows-7-to-trust-a-self-signed-server-certificate.html) to stop browsers displaying a warning before letting you access a website that uses it.
 
+### CreateHTTPBinding($websiteName, $port)
+
+Use this command to add an HTTP binding to a website. 
+
+* `$port` is optional. The script will prompt the user for a port if it is not specified.
+
+If the website already has an HTTP binding it will report the current binding instead.
+
 ### CreateHTTPSBinding($websiteName, $certificateName, $port)
 
-When you create a new website, by default it has an HTTP binding to port 80. Use this command to add an HTTPS binding. 
+Use this command to add an HTTPS binding to a website. 
 
 * `$certificateName` is optional. If you leave it blank it will look for the IIS Express Development Certificate bound to `localhost`. 
 * `$port` is optional. The script will prompt the user for a port if it is not specified.
 
-### RemoveHTTPBindings($websiteName)
+If the website already has an HTTPS binding it will report the current binding instead.
 
-When you create a new website, by default it has an HTTP binding to port 80. This removes that binding, and any other HTTP bindings which have been set up.
+### RemoveHTTPBinding($websiteName, $port)
+
+This removes an HTTP binding for the specified website on the specified port.
 
 ### CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDirectoryPath, $allowScripts, $applicationPoolName)
 

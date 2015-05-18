@@ -48,7 +48,6 @@ Example: C:\>set GIT_ORIGIN_URL=https://example-git-server.com/{0}"
 # CreateApplicationPool $projectName 
 # CreateWebsite $projectName $pathOfThisScript
 # CreateHTTPSBinding $projectName
-# RemoveHTTPBindings $projectName
 # CreateVirtualDirectory $projectName "some-folder" $pathOfThisScript true
 # CopyConfig "Web.example.config" "web.config"
 #

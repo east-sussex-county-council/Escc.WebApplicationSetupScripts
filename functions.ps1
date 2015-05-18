@@ -134,6 +134,9 @@ function CreateWebsite($websiteName, $wwwrootPath, $applicationPoolName) {
         $applicationPoolName = $websiteName
       }
       Set-ItemProperty "IIS:\Sites\$websiteName" -Name ApplicationPool -Value $applicationPoolName
+
+      # Remove the default binding so that we can set up our own bindings without having to clean up first
+      RemoveHTTPBinding $websiteName 80
   }
   else
   {
@@ -147,11 +150,17 @@ function CreateHTTPSBinding($websiteName, $certificateName, $port) {
 
   if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
   {
-      if (@(Get-WebBinding -Name $websiteName -Protocol https).Length -eq 0)
+      # If there are no bindings on any protocol Get-WebBinding throws an exception. This catches it, so that we can test for having no bindings.
+      trap [System.Management.Automation.PSArgumentNullException] {
+        continue
+      }
+
+      $httpsBindings = Get-WebBinding -Name $websiteName -Protocol https
+      if (!$httpsBindings)
       {
           if (!$port) {
             Write-Host
-            $port = Read-Host "What HTTPS port would you like the website to use?"
+            $port = Read-Host "What HTTPS port would you like $websiteName to use?"
             Write-Host
           }
           Write-Host Binding website $websiteName to port $port using HTTPS
@@ -177,15 +186,48 @@ function CreateHTTPSBinding($websiteName, $certificateName, $port) {
   }
 }
 
-function RemoveHTTPBindings($websiteName) {
+function CreateHTTPBinding($websiteName, $port) {
 
   if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
   {
-      # Remove the default binding to port 80
-      if (@(Get-WebBinding -Name $websiteName -Protocol http).Length -ge 1) 
+      # If there are no bindings on any protocol Get-WebBinding throws an exception. This catches it, so that we can test for having no bindings.
+      trap [System.Management.Automation.PSArgumentNullException] {
+        continue
+      }
+
+      $httpBindings = Get-WebBinding -Name $websiteName -Protocol http
+      if (!$httpBindings)
       {
-          Write-Host Removing HTTP bindings for web site $projectName
-          Remove-WebBinding -Name $websiteName -Protocol http
+          if (!$port) {
+            Write-Host
+            $port = Read-Host "What HTTP port would you like $websiteName to use?"
+            Write-Host
+          }
+          Write-Host Binding website $websiteName to port $port using HTTP
+
+          # Binding code is from comment by Dynamotion on https://social.technet.microsoft.com/Forums/lync/en-US/4f083f00-1f4c-466e-acf8-7ca8bb5baddf/unable-to-enable-https-binding-for-website-using-powershell?forum=winserverpowershell
+          New-WebBinding -Name $websiteName -IP "*" -Port $port -Protocol http
+      }
+      else
+      {
+          $existingPort = @(Get-WebBinding -Name $websiteName -Protocol http)[0].BindingInformation -replace "[^0-9]", ""
+          Write-Host "Web site $websiteName is already bound to port $existingPort"
+      }
+  }
+  else
+  {
+     Write-Host Web site $websiteName does not exist
+  }
+}
+
+function RemoveHTTPBinding($websiteName, $port) {
+
+  if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
+  {
+      if (@(Get-WebBinding -Name $websiteName -Protocol http -Port $port).Length -ge 1) 
+      {
+          Write-Host Removing HTTP binding for web site $projectName on port $port
+          Remove-WebBinding -Name $websiteName -Protocol http -Port $port
       }
   }
   else
