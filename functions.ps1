@@ -44,15 +44,20 @@ function EnableDotNet40InIIS() {
 }
 
 # Create an application pool if it doesn't already exist
-function CreateApplicationPool($applicationPoolName, $classicMode) {
+function CreateApplicationPool($applicationPoolName, $classicMode, $dotNet2) {
   if (@(Get-ChildItem IIS:\AppPools | Where-Object {$_.Name -eq $applicationPoolName}).Length -eq 0)
   {
       Write-Host Creating application pool $applicationPoolName
       New-WebAppPool -Name $applicationPoolName
-      Set-ItemProperty "IIS:\AppPools\$applicationPoolName" managedRuntimeVersion v4.0
       
       if ($classicMode) {
-         Set-ItemProperty "IIS:\AppPools\$applicationPoolName" -name managedPipelineMode -value 1
+        Set-ItemProperty "IIS:\AppPools\$applicationPoolName" -name managedPipelineMode -value 1
+      }
+
+      if ($dotNet2) {
+        Set-ItemProperty "IIS:\AppPools\$applicationPoolName" managedRuntimeVersion v2.0
+      } else {
+        Set-ItemProperty "IIS:\AppPools\$applicationPoolName" managedRuntimeVersion v4.0
       }
   } 
   else 
@@ -229,6 +234,30 @@ function RemoveHTTPBinding($websiteName, $port) {
           Write-Host Removing HTTP binding for web site $projectName on port $port
           Remove-WebBinding -Name $websiteName -Protocol http -Port $port
       }
+  }
+  else
+  {
+     Write-Host Web site $websiteName does not exist
+  }
+}
+
+function DisableAnonymousAuthentication($websiteName) {
+  if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
+  {
+    Write-Host "Disabling anonymous authentication for $websiteName"
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Name Enabled -Value False -PSPath IIS:\ -Location $websiteName
+  }
+  else
+  {
+     Write-Host Web site $websiteName does not exist
+  }
+}
+
+function EnableWindowsAuthentication($websiteName) {
+  if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
+  {
+    Write-Host "Enabling Windows authentication for $websiteName"
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Name Enabled -Value True -PSPath IIS:\ -Location $websiteName
   }
   else
   {

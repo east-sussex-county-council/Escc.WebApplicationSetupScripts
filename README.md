@@ -10,9 +10,9 @@ For each application, take a copy of `app-setup-dev.cmd` and `app-setup-dev.ps1`
 
 The ASP.NET 4.0 ISAPI modules aren't enabled by default in IIS. This ensures they're activated.
 
-### CreateApplicationPool($applicationPoolName, $classicMode)
+### CreateApplicationPool($applicationPoolName, $classicMode, $dotNet2)
 
-Creates an ASP.NET 4.0 application pool with the name you specify. By default it runs in Integrated mode, but set the optional `$classsicMode` parameter to `true` to make it run in Classic mode.
+Creates an application pool with the name you specify. By default it runs in Integrated mode using the .NET 4.0 CLR, but set the optional `$classsicMode` parameter to `true` to make it run in Classic mode, and set the optional `$dotNet2` parameter to `true` to make it run using the .NET 2.0 CLR (for .NET 2.0 to 3.5.x).
 
 ### CreateWebsite($websiteName, $wwwrootPath, $applicationPoolName)
 
@@ -46,6 +46,14 @@ If the website already has an HTTPS binding it will report the current binding i
 ### RemoveHTTPBinding($websiteName, $port)
 
 This removes an HTTP binding for the specified website on the specified port.
+
+### DisableAnonymousAuthentication($websiteName)
+
+Websites have anonymous authentication enabled by default. This disables it.
+
+### EnableWindowsAuthentication($websiteName)
+
+Websites have Windows authentication disabled by default. This enables it.
 
 ### CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDirectoryPath, $allowScripts, $applicationPoolName)
 
