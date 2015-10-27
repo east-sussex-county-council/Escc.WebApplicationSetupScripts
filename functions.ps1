@@ -282,7 +282,13 @@ function CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDire
     } 
     else 
     {
-     if ($applicationPoolName)
+		if ((Test-Path $virtualDirectoryPath) -eq 0) 
+		{
+			Write-Host "Creating physical directory $virtualDirectoryPath"
+			md $virtualDirectoryPath
+		}
+
+	  if ($applicationPoolName)
       {
         Write-Host "Creating application $virtualDirectoryUrl"
         New-Item "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -PhysicalPath $virtualDirectoryPath -Type Application
@@ -311,6 +317,28 @@ function CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDire
   }
 }
 
+# Make a copy of a folder before changing its contents
+function BackupApplication($applicationFolder, $backupFolder, $comment) {
+
+	if ((Test-Path $applicationFolder) -eq 1)
+	{
+		# Try to make the comment safe for a folder name
+		$invalidCharacters = "[{0}]" -f ([Regex]::Escape( [System.IO.Path]::GetInvalidFileNameChars() -join '' ))
+		$comment = $comment -replace $invalidCharacters, ""
+
+		# Create a folder for this application
+		$path = [System.IO.Path];
+		$applicationBackupFolder = $path::GetFileName($path::GetDirectoryName($applicationFolder.Trim() + "/"))
+
+		# Create a folder for this specific backup
+		$thisBackupFolder = ("{0} {1} {2}" -f (Get-Date).ToString("s").Replace(":","."), $env:USERNAME, $comment).Trim();
+		md -Force "$backupFolder\$applicationBackupFolder\$thisBackupFolder"
+
+		# Copy the entire contents of the source folder to the backup
+		robocopy $applicationFolder "$backupFolder\$applicationBackupFolder\$thisBackupFolder" /MIR 
+	}
+}
+
 # Copy a *.example.config to a *.config file
 function CopyConfig($from, $to) {
 	if (Test-Path $to) {
@@ -319,6 +347,31 @@ function CopyConfig($from, $to) {
 		Copy-Item $from $to
 		Write-Host "Created $to"
 	}
+}
+
+# Copy *.example.config to a *.config file, transforming it using an XDT file
+function TransformConfig($from, $to, $transformFile) {
+
+	if ((Test-Path Env:\MSBUILD_PATH) -eq 0)
+	{
+	  Write-Warning "The MSBUILD_PATH environment variable is not set"
+	  Break
+	}
+
+	if ((Test-Path $from) -eq 0)
+	{
+	  Write-Warning File not found $from
+	  Break
+	}
+
+	if ((Test-Path $transformFile) -eq 0)
+	{
+	  Write-Warning File not found $transformFile
+	  Break
+	}
+
+	$scriptPath = Split-Path -Parent $PSCommandPath
+	Invoke-Expression '& ${Env:MSBUILD_PATH} "$scriptPath\TransformConfig.xml" /p:TransformInputFile="$from" /p:TransformFile="$transformFile" /p:TransformOutputFile="$to"'
 }
 
 # Run nuget restore on an individual project
@@ -340,6 +393,16 @@ function CheckSiteExistsBeforeAddingApplication($websiteName)
   if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 0)
   {
     Write-Warning "You need to set up the $websiteName website first, before adding this application to it. Run app-setup-dev.cmd in the $websiteName project, then try this script again."
+    Break
+  }
+}
+
+# Check another application is already present before installing this one
+function CheckApplicationExists($destinationFolder, $application)
+{
+  if ((Test-Path "$destinationFolder/$application") -eq 0)
+  {
+    Write-Warning "You need to set up the $application application first, then try this script again."
     Break
   }
 }
