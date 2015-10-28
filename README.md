@@ -6,6 +6,10 @@ For each application, take a copy of `app-setup-dev.cmd` and `app-setup-dev.ps1`
 
 ## Fetching, moving and copying files
 
+### NormaliseFolderPath($path, $defaultPath) 
+
+Returns the value of `$path` as a valid absolute file path. When `$path` is empty `$defaultPath` is used, which is useful when a script has a path as an optional parameter.
+
 ### BackupApplication($applicationFolder, $backupFolder, $comment)
 
 Creates a copy of the `$applicationFolder` in `$backupFolder`. The folder name will include the current time, the user and the `$comment`.

@@ -434,3 +434,21 @@ function DownloadProjectIfMissing($parentFolderPath, $projectName) {
     }
   }
 }
+
+# Ensure any user-submitted paths resolve to an absolute file path
+function NormaliseFolderPath($path, $defaultPath) 
+{
+    if (!$path) 
+    {
+        $path = $defaultPath 
+    } 
+    if ($path) 
+    {
+        $path = $path.Trim()
+        if (!$path.StartsWith("\\"))
+        {
+           $path = Resolve-Path $path
+        }
+    }
+    return $path
+}
