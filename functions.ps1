@@ -299,17 +299,18 @@ function CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDire
         Write-Host "Creating virtual directory $virtualDirectoryUrl"
         New-WebVirtualDirectory -Site $websiteName -Name $virtualDirectoryUrl -PhysicalPath $virtualDirectoryPath
       }
-      
-      if ($allowScripts) 
-      {
-        $accessPolicy = "Read,Script"
-      }
-      else
-      {
-        $accessPolicy = "Read"
-      }
-      Set-WebConfigurationProperty -PSPath "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -Filter '/system.webserver/handlers' -Name accessPolicy -Value $accessPolicy
     }
+     
+    if ($allowScripts) 
+    {
+        $accessPolicy = "Read,Script"
+    }
+    else
+    {
+        $accessPolicy = "Read"
+    }
+    Write-Host "Setting virtual directory feature permissions to $accessPolicy"
+    Set-WebConfigurationProperty -PSPath "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -Filter '/system.webserver/handlers' -Name accessPolicy -Value $accessPolicy
   }
   else
   {
