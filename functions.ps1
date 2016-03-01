@@ -361,13 +361,13 @@ function TransformConfig($from, $to, $transformFile) {
 
 	if ((Test-Path $from) -eq 0)
 	{
-	  Write-Warning File not found $from
+	  Write-Warning "File not found $from"
 	  Break
 	}
 
 	if ((Test-Path $transformFile) -eq 0)
 	{
-	  Write-Warning File not found $transformFile
+	  Write-Warning "File not found $transformFile"
 	  Break
 	}
 
