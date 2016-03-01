@@ -135,11 +135,6 @@ function CreateWebsite($websiteName, $wwwrootPath, $applicationPoolName) {
       
       Set-ItemProperty "IIS:\Sites\$websiteName" -Name PhysicalPath -Value "$wwwrootPath"
       
-      if (!$applicationPoolName) {
-        $applicationPoolName = $websiteName
-      }
-      Set-ItemProperty "IIS:\Sites\$websiteName" -Name ApplicationPool -Value $applicationPoolName
-
       # Remove the default binding so that we can set up our own bindings without having to clean up first
       RemoveHTTPBinding $websiteName 80
   }
@@ -147,6 +142,12 @@ function CreateWebsite($websiteName, $wwwrootPath, $applicationPoolName) {
   {
      Write-Host Web site $websiteName already exists
   }
+
+  if (!$applicationPoolName) {
+    $applicationPoolName = $websiteName
+  }
+  Write-Host "Setting web site $websiteName to use application pool $applicationPoolName"
+  Set-ItemProperty "IIS:\Sites\$websiteName" -Name ApplicationPool -Value $applicationPoolName
 }
 
 
@@ -292,13 +293,18 @@ function CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDire
       {
         Write-Host "Creating application $virtualDirectoryUrl"
         New-Item "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -PhysicalPath $virtualDirectoryPath -Type Application
-        Set-ItemProperty "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -Name applicationPool -Value $applicationPoolName
       }
       else
       {
         Write-Host "Creating virtual directory $virtualDirectoryUrl"
         New-WebVirtualDirectory -Site $websiteName -Name $virtualDirectoryUrl -PhysicalPath $virtualDirectoryPath
       }
+    }
+    
+    if ($applicationPoolName)
+    {
+        Write-Host "Setting application pool to $applicationPoolName"
+        Set-ItemProperty "IIS:\Sites\$websiteName\$virtualDirectoryUrl" -Name applicationPool -Value $applicationPoolName
     }
      
     if ($allowScripts) 
