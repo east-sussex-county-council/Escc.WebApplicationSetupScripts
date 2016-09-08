@@ -79,13 +79,21 @@ If the website already has an HTTPS binding it will report the current binding i
 
 This removes an HTTP binding for the specified website on the specified port.
 
-### DisableAnonymousAuthentication($websiteName)
+### DisableAnonymousAuthentication($websiteName, $directoryUrl)
 
-Websites have anonymous authentication enabled by default. This disables it.
+Websites have anonymous authentication enabled by default. This disables it. 
 
-### EnableWindowsAuthentication($websiteName)
+`$directoryUrl` is an optional argument which changes authentication just for one part of the site.
+
+	DisableAnonymousAuthentication "Default Web Site" "my-secure-application" 
+
+### EnableWindowsAuthentication($websiteName, $directoryUrl)
 
 Websites have Windows authentication disabled by default. This enables it.
+
+`$directoryUrl` is an optional argument which changes authentication just for one part of the site.
+
+	EnableWindowsAuthentication "Default Web Site" "my-secure-application" 
 
 ### CreateVirtualDirectory($websiteName, $virtualDirectoryUrl, $virtualDirectoryPath, $allowScripts, $applicationPoolName)
 

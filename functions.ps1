@@ -242,23 +242,32 @@ function RemoveHTTPBinding($websiteName, $port) {
   }
 }
 
-function DisableAnonymousAuthentication($websiteName) {
-  if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
-  {
-    Write-Host "Disabling anonymous authentication for $websiteName"
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Name Enabled -Value False -PSPath IIS:\ -Location $websiteName
-  }
-  else
-  {
-     Write-Host Web site $websiteName does not exist
-  }
+function DisableAnonymousAuthentication($websiteName, $directoryUrl) {
+  SwitchAuthentication $websiteName $directoryUrl  "anonymousAuthentication" False "Disabling anonymous authentication"
 }
 
-function EnableWindowsAuthentication($websiteName) {
+function EnableWindowsAuthentication($websiteName, $directoryUrl) {
+  SwitchAuthentication $websiteName $directoryUrl "windowsAuthentication" True "Enabling Windows authentication"
+}
+
+# Private method with shared code for DisableAnonymousAuthentication and EnableWindowsAuthentication
+function SwitchAuthentication($websiteName, $directoryUrl, $nodeName, $enabled, $message) {
   if (@(Get-ChildItem IIS:\Sites | Where-Object {$_.Name -eq $websiteName}).Length -eq 1)
   {
-    Write-Host "Enabling Windows authentication for $websiteName"
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Name Enabled -Value True -PSPath IIS:\ -Location $websiteName
+	$pathToUpdate = "$websiteName"
+
+	if ($directoryUrl) 
+	{
+		$pathToUpdate = $pathToUpdate + "/$directoryUrl"
+		if ((Test-Path "IIS:\Sites\$pathToUpdate") -eq 0) 
+		{
+			"Directory $directoryUrl does not exist in IIS site $websiteName"
+			Break
+		}
+	}
+
+	Write-Host "$message for $pathToUpdate"
+	Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/$nodeName" -Name Enabled -Value $enabled -PSPath IIS:\ -Location $pathToUpdate
   }
   else
   {
