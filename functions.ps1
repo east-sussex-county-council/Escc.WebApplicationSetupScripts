@@ -135,8 +135,10 @@ function CreateWebsite($websiteName, $wwwrootPath, $applicationPoolName) {
       
       Set-ItemProperty "IIS:\Sites\$websiteName" -Name PhysicalPath -Value "$wwwrootPath"
       
-      # Remove the default binding so that we can set up our own bindings without having to clean up first
-      RemoveHTTPBinding $websiteName 80
+      ## Remove the default binding so that we can set up our own bindings without having to clean up first
+      # RemoveHTTPBinding $websiteName 80	  
+	  ## https://technet.microsoft.com/en-us/library/hh867895(v=wps.630).aspx
+	   Get-WebBinding -Name $websiteName | Remove-WebBinding
   }
   else
   {
