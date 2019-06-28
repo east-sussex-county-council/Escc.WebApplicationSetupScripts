@@ -370,7 +370,13 @@ function CopyConfig($from, $to) {
 # Copy *.example.config to a *.config file, transforming it using an XDT file
 function TransformConfig($from, $to, $transformFile) {
 
-	if ((Test-Path Env:\MSBUILD_PATH) -eq 0)
+	if ((Test-Path Env:\TEMP) -eq 0)
+	{
+	  Write-Warning "The TEMP environment variable is not set"
+	  Break
+	}
+
+  if ((Test-Path Env:\MSBUILD_PATH) -eq 0)
 	{
 	  Write-Warning "The MSBUILD_PATH environment variable is not set"
 	  Break
@@ -388,8 +394,12 @@ function TransformConfig($from, $to, $transformFile) {
 	  Break
 	}
 
-	$scriptPath = Split-Path -Parent $PSCommandPath
-	Invoke-Expression '& ${Env:MSBUILD_PATH} "$scriptPath\TransformConfig.xml" /p:TransformInputFile="$from" /p:TransformFile="$transformFile" /p:TransformOutputFile="$to"'
+  # Transform the file, but via a temp file to avoid file locking problems
+  $tempFile = $env:TEMP.Trim("\") + "\" + [Guid]::NewGuid().ToString() + ".transform"
+  $scriptPath = Split-Path -Parent $PSCommandPath
+  Invoke-Expression '& ${Env:MSBUILD_PATH} "$scriptPath\TransformConfig.xml" /p:TransformInputFile="$from" /p:TransformFile="$transformFile" /p:TransformOutputFile="$tempFile"'
+  Copy-Item $tempFile $to
+  Remove-Item $tempFile
 }
 
 # Run nuget restore on an individual project
